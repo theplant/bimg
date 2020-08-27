@@ -401,7 +401,7 @@ vips_init_image (void *buf, size_t len, int imageType, VipsImage **out) {
 #if (VIPS_MAJOR_VERSION >= 8)
 #if (VIPS_MINOR_VERSION >= 3)
 	} else if (imageType == GIF) {
-		code = vips_gifload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_gifload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, "n", -1, NULL);
 	} else if (imageType == PDF) {
 		code = vips_pdfload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
 	} else if (imageType == SVG) {
