@@ -215,8 +215,23 @@ func VipsIsTypeSupportedSave(t ImageType) bool {
 	return false
 }
 
+func vipsExifStringTag(image *C.VipsImage, tag string) string {
+	return vipsExifShort(C.GoString(C.vips_exif_tag(image, C.CString(tag))))
+}
+
+func vipsExifIntTag(image *C.VipsImage, tag string) int {
+	return int(C.vips_exif_tag_to_int(image, C.CString(tag)))
+}
+
 func vipsExifOrientation(image *C.VipsImage) int {
 	return int(C.vips_exif_orientation(image))
+}
+
+func vipsExifShort(s string) string {
+	if strings.Contains(s, " (") {
+		return s[:strings.Index(s, "(")-1]
+	}
+	return s
 }
 
 func vipsHasAlpha(image *C.VipsImage) bool {
@@ -242,6 +257,18 @@ func vipsRotate(image *C.VipsImage, angle Angle) (*C.VipsImage, error) {
 	defer C.g_object_unref(C.gpointer(image))
 
 	err := C.vips_rotate_bridge(image, &out, C.int(angle))
+	if err != 0 {
+		return nil, catchVipsError()
+	}
+
+	return out, nil
+}
+
+func vipsAutoRotate(image *C.VipsImage) (*C.VipsImage, error) {
+	var out *C.VipsImage
+	defer C.g_object_unref(C.gpointer(image))
+
+	err := C.vips_autorot_bridge(image, &out)
 	if err != 0 {
 		return nil, catchVipsError()
 	}
@@ -685,12 +712,27 @@ func vipsImageType(buf []byte) ImageType {
 	//   https://github.com/strukturag/libheif/issues/83#issuecomment-421427091
 	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
 		buf[8] == 0x68 && buf[9] == 0x65 && buf[10] == 0x69 && buf[11] == 0x63 {
-		// This is a HEIC file
+		// This is a HEIC file, ftypheic
 		return HEIF
 	}
 	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
 		buf[8] == 0x6d && buf[9] == 0x69 && buf[10] == 0x66 && buf[11] == 0x31 {
-		// This is a HEIF file
+		// This is a HEIF file, ftypmif1
+		return HEIF
+	}
+	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
+		buf[8] == 0x6d && buf[9] == 0x73 && buf[10] == 0x66 && buf[11] == 0x31 {
+		// This is a HEIFS file, ftypmsf1
+		return HEIF
+	}
+	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
+		buf[8] == 0x68 && buf[9] == 0x65 && buf[10] == 0x69 && buf[11] == 0x73 {
+		// This is a HEIFS file, ftypheis
+		return HEIF
+	}
+	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
+		buf[8] == 0x68 && buf[9] == 0x65 && buf[10] == 0x76 && buf[11] == 0x63 {
+		// This is a HEIFS file, ftyphevc
 		return HEIF
 	}
 

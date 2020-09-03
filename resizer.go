@@ -30,8 +30,18 @@ func resizer(buf []byte, o Options) ([]byte, error) {
 	// Clone and define default options
 	o = applyDefaults(o, imageType)
 
+	// Ensure supported type
 	if !IsTypeSupported(o.Type) {
 		return nil, errors.New("Unsupported image output type")
+	}
+
+	// Autorate only
+	if o.autoRotateOnly {
+		image, err = vipsAutoRotate(image)
+		if err != nil {
+			return nil, err
+		}
+		return saveImage(image, o)
 	}
 
 	// Auto rotate image based on EXIF orientation header
@@ -375,7 +385,6 @@ func watermarkImageWithText(image *C.VipsImage, w Watermark) (*C.VipsImage, erro
 }
 
 func watermarkImageWithAnotherImage(image *C.VipsImage, w WatermarkImage) (*C.VipsImage, error) {
-
 	if len(w.Buf) == 0 {
 		return image, nil
 	}
@@ -394,8 +403,7 @@ func watermarkImageWithAnotherImage(image *C.VipsImage, w WatermarkImage) (*C.Vi
 }
 
 func imageFlatten(image *C.VipsImage, imageType ImageType, o Options) (*C.VipsImage, error) {
-	// Only PNG images are supported for now
-	if o.Background == ColorBlack || (imageType != PNG && imageType != HEIF && imageType != WEBP) {
+	if o.Background == ColorBlack {
 		return image, nil
 	}
 	return vipsFlattenBackground(image, o.Background)

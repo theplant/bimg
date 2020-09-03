@@ -219,16 +219,35 @@ vips_rotate_bridge(VipsImage *in, VipsImage **out, int angle) {
 }
 
 int
-vips_exif_orientation(VipsImage *image) {
-	int orientation = 0;
+vips_autorot_bridge(VipsImage *in, VipsImage **out) {
+	return vips_autorot(in, out, NULL);
+}
+
+const char *
+vips_exif_tag(VipsImage *image, const char *tag) {
 	const char *exif;
 	if (
-		vips_image_get_typeof(image, EXIF_IFD0_ORIENTATION) != 0 &&
-		!vips_image_get_string(image, EXIF_IFD0_ORIENTATION, &exif)
+		vips_image_get_typeof(image, tag) != 0 &&
+		!vips_image_get_string(image, tag, &exif)
 	) {
-		orientation = atoi(&exif[0]);
+		return &exif[0];
 	}
-	return orientation;
+	return "";
+}
+
+int
+vips_exif_tag_to_int(VipsImage *image, const char *tag) {
+	int value = 0;
+	const char *exif = vips_exif_tag(image, tag);
+	if (strcmp(exif, "")) {
+		value = atoi(&exif[0]);
+	}
+	return value;
+}
+
+int
+vips_exif_orientation(VipsImage *image) {
+	return vips_exif_tag_to_int(image, EXIF_IFD0_ORIENTATION);
 }
 
 int
@@ -310,14 +329,14 @@ vips_jpegsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 
 int
 vips_pngsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int compression, int quality, int interlace, int palette) {
-#if (VIPS_MAJOR_VERSION >= 8 &&  VIPS_MINOR_VERSION >= 7)
+#if (VIPS_MAJOR_VERSION >= 8 && VIPS_MINOR_VERSION >= 7)
 	return vips_pngsave_buffer(in, buf, len,
 		"strip", INT_TO_GBOOLEAN(strip),
 		"compression", compression,
 		"interlace", INT_TO_GBOOLEAN(interlace),
 		"filter", VIPS_FOREIGN_PNG_FILTER_ALL,
-        "palette", INT_TO_GBOOLEAN(palette),
-        "Q", quality,
+		"palette", INT_TO_GBOOLEAN(palette),
+		"Q", quality,
 		NULL
 	);
 #else
